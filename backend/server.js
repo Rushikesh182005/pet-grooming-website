@@ -9,7 +9,7 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://pet-grooming-website.vercel.app', 'https://pet-grooming-website-git-main-rushikesh182005.vercel.app']
+    ? ['https://pet-grooming-website.vercel.app', 'https://pet-grooming-website-git-main-rushikesh182005.vercel.app', 'https://pet-grooming-website-rushikesh182005.vercel.app']
     : 'http://localhost:3000',
   credentials: true
 }));
