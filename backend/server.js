@@ -38,17 +38,47 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Connect to MongoDB
+let mongoError = null;
+
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/pet-grooming')
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .then(() => {
+    mongoError = null;
+    console.log('Connected to MongoDB');
+  })
+  .catch(err => {
+    mongoError = err.message || String(err);
+    console.error('MongoDB connection error:', err);
+  });
+
+mongoose.connection.on('error', err => {
+  mongoError = err.message || String(err);
+  console.error('MongoDB connection error event:', err);
+});
+
+mongoose.connection.on('connected', () => {
+  mongoError = null;
+  console.log('Mongoose connected event');
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  const dbStatus = states[mongoose.connection.readyState] || 'unknown';
+  
+  const rawUri = process.env.MONGODB_URI || '';
+  const maskedUri = rawUri
+    ? rawUri.replace(/:([^:@]+)@/, ':****@')
+    : 'Not set (using localhost fallback: mongodb://localhost:27017/pet-grooming)';
+
   res.status(200).json({
     status: 'ok',
     message: 'Pet Grooming Backend API is running',
     mongodb: dbStatus,
+    mongoDetails: {
+      status: dbStatus,
+      error: mongoError,
+      uriPreview: maskedUri
+    },
     timestamp: new Date().toISOString()
   });
 });
