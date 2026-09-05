@@ -83,6 +83,104 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Seed endpoint to populate sample services if empty
+app.get('/api/seed', async (req, res) => {
+  try {
+    const Service = require('./models/Service');
+    const User = require('./models/User');
+
+    const count = await Service.countDocuments();
+    if (count > 0) {
+      return res.json({ 
+        message: `Database already has ${count} services.`,
+        servicesCount: count 
+      });
+    }
+
+    const services = [
+      {
+        name: 'Basic Grooming',
+        description: 'Complete grooming service including bath, brush, nail trim, and ear cleaning',
+        price: 45,
+        duration: 60,
+        category: 'grooming'
+      },
+      {
+        name: 'Deluxe Grooming',
+        description: 'Premium grooming with extra attention to detail, including de-shedding treatment',
+        price: 65,
+        duration: 90,
+        category: 'grooming'
+      },
+      {
+        name: 'Bath & Brush',
+        description: 'Thorough bath with premium shampoo and complete brush out',
+        price: 35,
+        duration: 45,
+        category: 'bathing'
+      },
+      {
+        name: 'Nail Trim',
+        description: 'Professional nail trimming and filing',
+        price: 15,
+        duration: 15,
+        category: 'health'
+      },
+      {
+        name: 'Ear Cleaning',
+        description: 'Deep ear cleaning and inspection',
+        price: 12,
+        duration: 15,
+        category: 'health'
+      },
+      {
+        name: 'Haircut & Style',
+        description: 'Custom haircut and styling based on breed standards',
+        price: 55,
+        duration: 75,
+        category: 'styling'
+      },
+      {
+        name: 'Puppy Grooming',
+        description: 'Gentle first-time grooming experience for puppies',
+        price: 40,
+        duration: 45,
+        category: 'grooming'
+      },
+      {
+        name: 'Senior Pet Care',
+        description: 'Specialized grooming for senior pets with extra care and attention',
+        price: 50,
+        duration: 60,
+        category: 'grooming'
+      }
+    ];
+
+    await Service.insertMany(services);
+
+    const adminExists = await User.findOne({ email: 'admin@petgrooming.com' });
+    if (!adminExists) {
+      const admin = new User({
+        username: 'admin',
+        email: 'admin@petgrooming.com',
+        password: 'admin123',
+        role: 'admin'
+      });
+      await admin.save();
+    }
+
+    res.json({ 
+      success: true,
+      message: 'Successfully seeded 8 sample services and created default admin user!',
+      adminEmail: 'admin@petgrooming.com',
+      adminPassword: 'admin123'
+    });
+  } catch (error) {
+    console.error('Seed error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/services', require('./routes/services'));

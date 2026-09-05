@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // API base URL configuration
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? process.env.REACT_APP_API_URL || 'https://your-backend-domain.onrender.com'
+  ? process.env.REACT_APP_API_URL || 'https://pet-grooming-backend.onrender.com'
   : 'http://localhost:5000';
 
 // Create axios instance with base configuration
