@@ -2,15 +2,33 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: './config.env' });
 
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+  'https://pet-grooming-website-rushikesh.vercel.app',
+  'https://pet-grooming-website-rushikesh-git-main-rushikesh182005.vercel.app',
+  'https://pet-grooming-website-rushikesh-rushikesh182005.vercel.app'
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://pet-grooming-website-rushikesh.vercel.app', 'https://pet-grooming-website-rushikesh-git-main-rushikesh182005.vercel.app', 'https://pet-grooming-website-rushikesh-rushikesh182005.vercel.app']
-    : 'http://localhost:3000',
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (
+      process.env.NODE_ENV !== 'production' ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('localhost') ||
+      allowedOrigins.includes(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -24,18 +42,34 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/pet-groom
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  res.status(200).json({
+    status: 'ok',
+    message: 'Pet Grooming Backend API is running',
+    mongodb: dbStatus,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/services', require('./routes/services'));
 app.use('/api/bookings', require('./routes/bookings'));
 app.use('/api/gallery', require('./routes/gallery'));
 
-// Serve React app in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
+// Serve React app in production if built locally, otherwise show API status
+const frontendBuildPath = path.join(__dirname, '../frontend/build');
+if (fs.existsSync(frontendBuildPath)) {
+  app.use(express.static(frontendBuildPath));
   
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.json({ message: 'Pet Grooming API is running successfully' });
   });
 }
 
